@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Jakub Giezgała">
+    <title>List Comments</title>
+</head>
+<body>
+    <h1>All comments</h1>
+    <ul>
+        <li>
+            <a href="{% url 'add_comment' %}">Add new comment</a>
+        </li>
+        {% for comment in comments %}
+        <li>
+            <b>{{ comment.text }}</b> by {{ comment.author }} - Created at: 
+            {{ comment.creation_date }}, Published from: {{ comment.published_from }}
+            <a href="{% url 'edit_comment' comment.id %}">Edit</a>
+            <a href="{% url 'delete_comment' comment.id %}">Delete</a>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
