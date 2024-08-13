@@ -1,0 +1,421 @@
+<!-- Searching for snps -->
+
+{% extends 'base.html' %}
+
+{% block content %}
+
+<script>
+  var chosen_species = "";
+  // Save chosen species
+  function save_species(species){
+    chosen_species = species;
+    console.log(chosen_species)
+    document.getElementById("chosen-species").textContent = chosen_species;
+    document.getElementById("species-input").value = chosen_species;
+  }
+</script>
+
+<!-- Library for jQuery and PDF -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  var chosen_snp = "";
+  // Save SNP for Forms
+  function save_snp(snp) {
+    chosen_snp = snp;
+    console.log(chosen_snp);
+    document.getElementById("snp-input").value = chosen_snp;
+    document.getElementById("hidden-snp").value = chosen_snp;
+
+    // AJAX
+    $.ajax({
+        url: "{% url 'save_snp' %}",
+        type: "POST",
+        data: {
+          chosen_snp: chosen_snp,
+          csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        dataType: "json",
+        success: function(data) {
+          var tableBody = $('#annotations-table tbody');
+          tableBody.empty();
+          data.forEach(function(annotation) {
+                var row = '<tr class="ann-row">' +
+                    '<td>' + annotation.group + '</td>' +
+                    '<td>' + annotation.text + '</td>' +
+                    '</tr>';
+                tableBody.append(row);
+            });
+
+        },
+        error: function(xhr, status, error) {
+            console.log(xhr.responseText);
+        }
+    });
+  }
+</script>
+
+<script>
+  var chosen_snp = "";
+  function download_snp(snp) {
+    chosen_snp = snp;
+    console.log(chosen_snp);
+    document.getElementById("snp-input").value = chosen_snp;
+    document.getElementById("hidden-snp").value = chosen_snp;
+
+    $.ajax({
+        url: "{% url 'save_snp' %}",
+        type: "POST",
+        data: {
+          chosen_snp: chosen_snp,
+          csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        dataType: "json",
+        success: function(data) {
+          var tableBody = $('#annotations-table tbody');
+          tableBody.empty();
+          data.forEach(function(annotation) {
+                var row = '<tr class="ann-row">' +
+                    '<td>' + annotation.group + '</td>' +
+                    '<td>' + annotation.text + '</td>' +
+                    '</tr>';
+                tableBody.append(row);
+            });
+
+          // Save to pdf
+          window.pdfData = data;
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+
+          doc.setFontSize(12);
+          doc.text("Annotations for SNP: " + chosen_snp, 10, 10);
+
+          var i = 1;
+          var startY = 20;
+          window.pdfData.forEach(function(annotation) {
+          doc.text(i + " Annotation:", 10, startY);
+          doc.text("Group: " + annotation.group, 10, startY + 5);
+          doc.text("Text: " + annotation.text, 10, startY + 10);
+          startY += 20;
+          i += 1;
+          });
+
+    doc.save(chosen_snp + '_annotations_raport.pdf');
+        },
+        error: function(xhr, status, error) {
+            console.log(xhr.responseText);
+        }
+    });
+  }
+</script>
+
+<script>
+  function zoom_in() {
+    var regionInput = document.getElementById('id_region');
+            var regionValue = regionInput.value;
+
+            // Use regex to extract chromosome, start, and end
+            var match = regionValue.match(/^chr(\d+):(\d+)-(\d+)$/);
+            if (match) {
+                var chromosome = match[1];
+                var start = parseInt(match[2], 10);
+                var end = parseInt(match[3], 10);
+
+                // Calculate the average and add to start and minus to end
+                var avg = (start + end) / 4;
+                avg = Math.round(avg);
+                var newStart = start + avg;
+                newStart = Math.min(newStart, end)
+                var newEnd = end - avg;
+                newEnd = Math.max(newStart, newEnd);
+
+                // Update the region value
+                var newRegionValue = `chr${chromosome}:${Math.round(newStart)}-${Math.round(newEnd)}`;
+                regionInput.value = newRegionValue;
+
+                // Submit the form
+                document.getElementById('snpFilterForm').submit();
+            } else {
+                alert("Please enter a valid region format (chr1:xxx-xxx)!");
+            }
+        }
+</script>
+
+<script>
+  function zoom_out() {
+            var regionInput = document.getElementById('id_region');
+            var regionValue = regionInput.value;
+
+            // Use regex to extract chromosome, start, and end
+            var match = regionValue.match(/^chr(\d+):(\d+)-(\d+)$/);
+            if (match) {
+                var chromosome = match[1];
+                var start = parseInt(match[2], 10);
+                var end = parseInt(match[3], 10);
+
+                // Calculate the average and add to start and minus to end
+                var avg = (start + end) / 4;
+                avg = Math.round(avg);
+                var newStart = start - avg;
+                newStart = Math.max(newStart, 0)
+                var newEnd = end + avg;
+
+                // Update the region value
+                var newRegionValue = `chr${chromosome}:${Math.round(newStart)}-${Math.round(newEnd)}`;
+                regionInput.value = newRegionValue;
+
+                // Submit the form
+                document.getElementById('snpFilterForm').submit();
+            } else {
+                alert("Please enter a valid region format (chr1:xxx-xxx)!");
+            }
+        }
+</script>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" target="_blank" href="#">SNP Atlas</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" aria-current="page" href="{% url 'home'%}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="{% url 'snps'%}">SNPs</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'login'%}">Log In</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section>
+      <div class="container-md">
+        <div class="row justify-content-center mt-3">
+          <div class="col">
+            <nav class="navbar navbar-dark bg-primary">
+              <div class="container-fluid">
+                <span class="nav-item" style="color: white;">Select Species</span>
+              </div>
+            </nav>
+          </div>
+        </div>
+        <div class="container-fluid" style="border: 1px solid #ced4da;">
+          <div class="row justify-content-center mt-2 mb-4">
+            <div>
+              <ul class="list-group list-group-horizontal-md d-flex flex-wrap">
+                {% for animal in species %}
+                <li class="list-group-item flex-fill border-0">
+                  <div class="square">
+                    <img src="{{ animal.image.url }}" alt="{{ animal.name }}" title="{{ animal.name }}"
+                        onclick="save_species('{{ animal.name }}')" width="100%" height="100%" style="object-fit: cover">
+                  </div>
+                  <div class="col">{{ animal.name }}</div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="row justify-content-md-center mt-3">
+          <div class="col">
+          <nav class="navbar navbar-dark bg-primary">
+            <div class="container-fluid">
+              <span class="nav-item" style="color: white;">SNP search</span>
+              <form action="{% url 'snps' %}" method="POST" id="snpFilterForm">
+                {% csrf_token %}
+              <span class="my-1 fw-bold" id="chosen-species"></span>
+            </div>
+          </nav>
+        <div class="container-fluid" style="border: 1px solid #ced4da;" id="chosen-species">
+                <div class="input-group">
+                  <input type="hidden" id="species-input" name="chosen_species" value="">
+                </div>
+                <div class="col-md-6 my-2 mt-3">
+                    <div class="input-group">
+                      <div class="col-md-2 col-form-label">
+                      {{ form.region.label_tag }}
+                    </div>
+                      {{ form.region }}
+                        <button type="button" class="btn btn-secondary" onclick="zoom_in()"
+                         style="background-color: #e9ecef; border: 1px solid #ced4da; color: black">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-zoom-in" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11M13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0"/>
+                          <path d="M10.344 11.742q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1 6.5 6.5 0 0 1-1.398 1.4z"/>
+                          <path fill-rule="evenodd" d="M6.5 3a.5.5 0 0 1 .5.5V6h2.5a.5.5 0 0 1 0 1H7v2.5a.5.5 0 0 1-1 0V7H3.5a.5.5 0 0 1 0-1H6V3.5a.5.5 0 0 1 .5-.5"/>
+                        </svg>
+                        <button type="button" class="btn btn-secondary" onclick="zoom_out()"
+                         style="background-color: #e9ecef; border: 1px solid #ced4da; color: black">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-zoom-out" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11M13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0"/>
+                        <path d="M10.344 11.742q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1 6.5 6.5 0 0 1-1.398 1.4z"/>
+                        <path fill-rule="evenodd" d="M3 6.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5"/>
+                        </svg>
+                  </div>
+                </div>
+                <div class="col-md-6 gy-3 mt-3">
+                    <div class="input-group">
+                      <div class="col-md-2 col-form-label">
+                        MAF:
+                      </div>
+                      <div class="input-group-text">
+                        {{ form.maf_min.label_tag }}
+                      </div>
+                        {{ form.maf_min }} 
+                        <div class="input-group-text">
+                          {{ form.maf_max.label_tag }}
+                        </div>
+                        {{ form.maf_max }}
+                    </div>
+                </div>
+                <div class="row-cols-auto mt-3 mb-3">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="container-fluid">
+      <div class="row justify-content-center mt-3">
+      <div class="col">
+        <nav aria-label="Pages">
+        <ul class="pagination">
+        <li class="page-item">
+          <a class="page-link" href="#" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+          <span class="sr-only">Previous</span>
+          </a>
+        </li>
+        <li class="page-item"><a class="page-link" href="#">1</a></li>
+        <li class="page-item"><a class="page-link" href="#">2</a></li>
+        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        <li class="page-item">
+          <a class="page-link" href="#" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span>
+          <span class="sr-only">Next</span>
+          </a>
+        </li>
+        </ul>
+      </nav>
+      </div>
+      <div class="col">
+        <button class="btn btn-primary float-end" type="submit">
+          Download
+        </button>
+      </div>
+      </div>
+
+      <!--Table-->  
+    <div class="row justify-content-center">
+      <div class="col">
+      <table class="table table-striped table-bordered my-2 text-center align-middle">
+        <thead class="text-center">
+          <tr>
+            <th scope="col">Chromosome</th>
+            <th scope="col">Position</th>
+            <th scope="col">Reference Allele</th>
+            <th scope="col">Alternate Allele</th>
+            <th scope="col">MAF</th>
+            <th scope="col">Annotation</th>
+            <th scope="col">Browser</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for snp in snps %}
+          <tr class="snp-row">
+            <td>{{ snp.chromosome }}</td>
+            <td>{{ snp.coordinate }}</td>
+            <td>{{ snp.reference_allele }}</td>
+            <td>{{ snp.alternative_allele }}</td>
+            <td>{{ snp.MAF }}</td>
+            <td class="text-center">
+
+              <!--Passing the id of the selected SNP-->
+              <form method="POST" id="save-snp">
+                {% csrf_token %}
+                <input type="hidden" id="hidden-snp" name="chosen_snp" value="">
+              </form>
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+              data-bs-target="#annotationsModal" onclick="save_snp('{{ snp.id }}')">Details</button>
+            </td>
+            <td class="text-center">
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+              data-bs-target="#annotationsModal" onclick="download_snp('{{ snp.id }}')">Show in browser</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+        
+        <!--Modal-->
+        <div class="modal .modal-lg fade" id="annotationsModal" tabindex="-1" aria-labelledby="annotationsModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="annotationsModalLabel">Annotations</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <table class="table table-striped table-bordered my-2 text-center align-middle" id="annotations-table">
+                  <thead class="text-center">
+                    <tr>
+                      <th scope="col">Group</th>
+                      <th scope="col">Content</th>
+                    </tr>
+                  </thead>
+          
+                  <tbody>
+                    {% for annotation in annotations %}
+                    <tr class="ann-row">
+                      <td>{{ annotation.group }}</td>
+                      <td>{{ annotation.text }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+
+                <hr>
+                <!--Adding annotations-->
+                <h4>Add annotation</h4>
+                <form action="{% url 'annotations' %}" method="POST" id="annotationsForm">
+                  {% csrf_token %}
+                  <div class="input-group">
+                    <input type="hidden" id="snp-input" name="chosen_snp" value="">
+                  </div>
+                  <div class="mb-3">
+                    {{ annot_form.group.label_tag }}
+                    {{ annot_form.group }}
+                  </div>
+                  <div class="mb-3">
+                    {{ annot_form.text.label_tag }}
+                    {{ annot_form.text }}
+                  </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary" data-bs-target="#annotationsModal" data-bs-toggle="modal" data-bs-dismiss="modal">Add</button>
+              </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+</div>
+    </section>
+  </main>
+</body>
+
+{% endblock %}

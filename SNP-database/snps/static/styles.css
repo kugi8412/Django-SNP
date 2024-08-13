@@ -1,0 +1,19 @@
+main {
+	margin-left: 10%;
+	margin-right: 10%
+}
+
+.square {
+  width: 10em;
+  height: 10em;
+  background-color: #ced4da;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+}
+
+.square + div {
+	color: #525457;
+	text-align: center;
+	margin-top: 4px;
+}

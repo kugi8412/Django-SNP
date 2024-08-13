@@ -1,0 +1,160 @@
+<!-- Homepage of applicacation snps -->
+
+{% extends 'base.html' %}
+
+{% block content %}
+
+<body>
+    <section>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" target="_blank" href="#">SNP Atlas</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'snps'%}">SNPs</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login'%}">Log In</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </section>
+
+    <main>
+        <section>
+            <div class="container-md">
+                <div class="row justify-content-center mt-2">
+                    <div class="col">
+                        <nav class="navbar navbar-dark bg-primary">
+                            <div class="container-fluid">
+                                <span class="nav-item" style="color: white;">Welcome to SNP Atlas</span>
+                            </div>
+                        </nav>
+                        <div>
+                            <textarea class="form-control" rows="12" style="resize: none; background-color: white;
+                               border-top-left-radius: 0; border-top-right-radius: 0;" readonly>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras vehicula eget enim et facilisis. Morbi ut enim non libero sodales dignissim. Ut felis nisl, elementum ac egestas tempor, sodales ac erat. In eu sodales nibh. Nam in magna rhoncus, gravida metus et, rhoncus turpis. Cras sagittis dui quis urna commodo, id fermentum nisl dapibus. Maecenas a ipsum tempor, pretium sem at, dapibus turpis. Praesent non purus enim. Donec varius sit amet tortor et consectetur. Nam id eros ullamcorper, ultrices neque id, vestibulum orci. Nullam commodo laoreet euismod.
+
+    Nulla in pulvinar dolor. Nullam dictum, nisl vitae commodo imperdiet, mauris sem viverra diam, ut placerat sem nisi eu odio. Mauris hendrerit nisi id tincidunt aliquet. Etiam suscipit metus ut lectus elementum, nec blandit enim ullamcorper. Suspendisse potenti. Mauris hendrerit, metus ut varius suscipit, justo felis ullamcorper augue, ac iaculis dolor diam eu risus. Ut mattis ipsum eu urna luctus, eu ultrices sem pellentesque. Proin ut ex eget velit iaculis ultricies. Curabitur pretium metus fringilla ex rutrum dignissim. Nulla fringilla et urna ac condimentum. In quis maximus est.
+                            </textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="row justify-content-center mt-2 mb-2">
+                    <div class="col">
+                        <nav class="navbar navbar-dark bg-primary">
+                            <div class="container-fluid">
+                                <span class="nav-item" style="color: white;">Basic statistics</span>
+                            </div>
+                        </nav>
+                        <div style="border: 1px solid #ced4da; display: flex;">
+                            <table class="table table-md m-4" style="position: relative;">
+                                <thead style="padding: 5px;">
+                                    <tr style="text-align: center">
+                                        <th scope="col">Category</th>
+                                        <th scope="col">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Species</td>
+                                        <td>{{ species_count }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>SNPs</td>
+                                        <td>{{ snp_count }}
+                                    </tr>
+                                    <tr>
+                                        <td>Annotations</td>
+                                        <td>{{ annotation_count }}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <nav class="navbar navbar-dark bg-primary">
+                            <div class="container-fluid">
+                                <span class="nav-item" style="color: white;">Samples per Species</span>
+                            </div>
+                        </nav>
+                        <div class="chart-container">
+                            <canvas id="ChartSamples" class="chart-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('ChartSamples').getContext('2d');
+            const data = {
+                labels: Object.keys({{ animal_samples_count|safe }}),
+                datasets: [{
+                    label: 'Samples per Animal',
+                    data: Object.values({{ animal_samples_count|safe }}),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            const ChartSamples = new Chart(ctx, {
+                type: 'pie',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    let label = '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'decimal' }).format(context.parsed);
+                                        label += ' Samples';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                },
+            });
+        });
+    </script>
+</body>
+
+{% endblock %}
